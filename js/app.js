@@ -121,8 +121,10 @@ RB.App = (function () {
   function renderPlanResult() {
     const t = currentTrip;
     const box = $('#planResult');
-    if (!t.plan || !t.plan.length) { box.innerHTML = ''; $('#mapBox').classList.add('hide'); return; }
+    const sch = $('#schematicBox');
+    if (!t.plan || !t.plan.length) { box.innerHTML = ''; $('#mapBox').classList.add('hide'); if (sch) RB.Schematic.render(sch, null); return; }
     $('#mapBox').classList.remove('hide');
+    if (sch) RB.Schematic.render(sch, t.plan, t.startPos ? { name: t.startName || '出发点', lat: t.startPos.lat, lng: t.startPos.lng } : null);
     const s = t.planSummary || {};
     let html = `<div class="summary">
       <div>${s.startClock} 出发 → ${s.endClock} 结束 · 总时长 ${RB.Planner.fmtHM(s.totalMin)}</div>
