@@ -62,7 +62,7 @@ RB.TC = (function () {
     const r = d.result.routes[0];
     return {
       distance: r.distance,          // 米
-      duration: Math.round(r.duration * 60) // 秒→分钟
+      duration: Math.round(r.duration) // 驾车API的duration单位即分钟
     };
   }
 

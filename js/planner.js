@@ -15,10 +15,14 @@ RB.Planner = (function () {
   // 2-opt 优化最近邻序列（TSP open path）
   function optimizeOrder(start, points) {
     if (!points.length) return points;
-    // 最近邻
+    // 最近邻（起点缺省时用几何中心作锚点）
     let remaining = points.slice();
     const order = [];
-    let cur = start;
+    let cur = start || {
+      lat: remaining.reduce((s2, p) => s2 + p.lat, 0) / remaining.length,
+      lng: remaining.reduce((s2, p) => s2 + p.lng, 0) / remaining.length
+    };
+    if (!start) cur.__virtual = true;
     while (remaining.length) {
       remaining.sort((a, b) => distKm(cur, a) - distKm(cur, b));
       const next = remaining.shift();
@@ -32,8 +36,9 @@ RB.Planner = (function () {
         for (let i = 0; i < order.length - 1; i++) {
           for (let j = i + 1; j < order.length; j++) {
             const a = i === 0 ? start : order[i - 1];
-            const d1 = distKm(a, order[i]) + distKm(order[j], order[j + 1] || start);
-            const d2 = distKm(a, order[j]) + distKm(order[i], order[j + 1] || start);
+            const endAnchor = order[j + 1] || start || cur;
+            const d1 = distKm(a, order[i]) + distKm(order[j], endAnchor);
+            const d2 = distKm(a, order[j]) + distKm(order[i], endAnchor);
             if (d2 < d1 - 0.01) {
               // 反转 i..j
               const seg = order.slice(i, j + 1).reverse();

@@ -1,5 +1,5 @@
 // 自驾路书 Service Worker — 缓存应用壳，离线可用（地图瓦片需联网）
-const CACHE = 'roadbook-v2';
+const CACHE = 'roadbook-v3';
 const ASSETS = [
   './', './index.html', './manifest.json',
   './css/app.css', './js/config.js', './js/db.js', './js/tencent.js',

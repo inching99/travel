@@ -405,31 +405,31 @@ RB.App = (function () {
   }
 
   // ---------- 事件绑定 ----------
+  function on(sel, handler) { const el = $(sel); if (el) el.onclick = handler; else console.warn('未找到元素:', sel); }
   function bind() {
     $$('.tabbar button').forEach(b => b.onclick = () => go(b.dataset.v));
-    $('#btnNewTrip').onclick = newTripFlow;
-    $('#btnSearch').onclick = doSearch;
-    $('#searchInput').onkeydown = e => { if (e.key === 'Enter') doSearch(); };
-    $('#btnSetStart').onclick = setStart;
-    $('#startHour').onchange = async e => { currentTrip.startHour = +e.target.value || 8; await saveCurrent(); };
-    $('#keepOrder').onchange = async e => { currentTrip.keepOrder = e.target.checked; await saveCurrent(); };
-    $('#btnPlan').onclick = planNow;
-    $('#btnTripPoster').onclick = async () => {
+    on('#btnNewTrip', newTripFlow);
+    on('#btnSearch', doSearch);
+    on('#btnSetStart', setStart);
+    const sh = $('#startHour'); if (sh) sh.onchange = async e => { currentTrip.startHour = +e.target.value || 8; await saveCurrent(); };
+    const ko = $('#keepOrder'); if (ko) ko.onchange = async e => { currentTrip.keepOrder = e.target.checked; await saveCurrent(); };
+    on('#btnPlan', planNow);
+    on('#btnTripPoster', async () => {
       if (!currentTrip || !currentTrip.plan) return toast('请先完成规划');
       const url = await RB.Poster.makeTripPoster(currentTrip);
       RB.Poster.download(url, 'roadbook-trip.jpg');
-    };
-    $('#btnGoDiary').onclick = () => { go('diary'); openDiaryEditor(); };
-    $('#btnNewDiary').onclick = openDiaryEditor;
-    $('#diaryTripSel').onchange = e => renderDiaryList(e.target.value);
-    $('#btnAddPhoto').onclick = addDiaryPhoto;
-    $('#btnSaveDiary').onclick = saveDiary;
-    $('#btnCloseDiary').onclick = () => $('#diaryModal').classList.remove('show');
-    $('#parkClose').onclick = () => $('#parkModal').classList.remove('show');
-    $('#photoFull').onclick = () => $('#photoFull').classList.remove('show');
-    $('#btnSaveKey').onclick = saveKey;
-    $('#btnExport').onclick = exportData;
-    $('#btnImport').onclick = importData;
+    });
+    on('#btnGoDiary', () => { go('diary'); openDiaryEditor(); });
+    on('#btnNewDiary', openDiaryEditor);
+    const ds = $('#diaryTripSel'); if (ds) ds.onchange = e => renderDiaryList(e.target.value);
+    on('#btnAddPhoto', addDiaryPhoto);
+    on('#btnSaveDiary', saveDiary);
+    on('#btnCloseDiary', () => $('#diaryModal').classList.remove('show'));
+    on('#parkClose', () => $('#parkModal').classList.remove('show'));
+    on('#photoFull', () => $('#photoFull').classList.remove('show'));
+    on('#btnSaveKey', saveKey);
+    on('#btnExport', exportData);
+    on('#btnImport', importData);
   }
 
   async function start() {
