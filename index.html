@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <title>自驾路书 RoadBook</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2563eb">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="自驾路书">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+  <!-- ============ 首页 ============ -->
+  <section id="homeView" class="view active">
+    <div class="page-head">
+      <h1>🚗 自驾路书</h1>
+      <div class="sub">线路规划 · 停留预估 · 停车检索 · 旅行日记</div>
+    </div>
+    <div class="container">
+      <div id="tripList"></div>
+      <button class="btn" id="btnNewTrip">＋ 新建行程</button>
+    </div>
+  </section>
+
+  <!-- ============ 行程页 ============ -->
+  <section id="tripView" class="view">
+    <div class="page-head">
+      <h1 id="tripTitle">行程</h1>
+      <div class="sub">搜索添加地点 → 一键规划 → 查看建议与停车</div>
+    </div>
+    <div class="container">
+      <!-- 搜索 -->
+      <div class="search-bar">
+        <input type="text" id="searchCity" placeholder="城市（可空）" class="city-in">
+        <input type="text" id="searchInput" placeholder="搜地点：鼓浪屿、环岛路…">
+        <button class="btn" id="btnSearch">搜索</button>
+      </div>
+      <div id="searchResult"></div>
+
+      <!-- 行程设置 -->
+      <div class="card">
+        <div class="trip-meta">
+          <button class="btn-s" id="btnSetStart">🚩 设起点</button>
+          <label>出发 <input type="number" id="startHour" min="5" max="12" step="0.5"> 点</label>
+          <label><input type="checkbox" id="keepOrder"> 按我排的顺序</label>
+        </div>
+        <div class="sub" id="startPosLabel" style="margin-top:8px"></div>
+      </div>
+
+      <!-- 地点列表 -->
+      <div id="pointList"></div>
+
+      <!-- 规划按钮 -->
+      <button class="btn" id="btnPlan">⚡ 一键规划路线</button>
+
+      <!-- 结果 -->
+      <div id="planResult" style="margin-top:12px"></div>
+
+      <!-- 地图 -->
+      <div id="mapBox" class="hide">
+        <div id="tripMap"></div>
+        <div id="mapErr"></div>
+      </div>
+
+      <!-- 去写日记 -->
+      <div style="margin-top:14px">
+        <button class="btn btn-line" id="btnGoDiary">📓 走完这程，记一笔</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 日记页 ============ -->
+  <section id="diaryView" class="view">
+    <div class="page-head">
+      <h1>📓 旅行日记</h1>
+      <div class="trip-meta" style="margin-top:8px">
+        <select id="diaryTripSel"></select>
+        <button class="btn-s" id="btnNewDiary" style="background:#fff">＋ 记一笔</button>
+      </div>
+    </div>
+    <div class="container">
+      <div id="diaryList"></div>
+    </div>
+  </section>
+
+  <!-- ============ 设置页 ============ -->
+  <section id="settingsView" class="view">
+    <div class="page-head">
+      <h1>⚙️ 设置</h1>
+    </div>
+    <div class="container">
+      <div class="card">
+        <div class="set-row">
+          <label>腾讯地图 Key</label>
+          <input type="text" id="keyInput" placeholder="lbs.qq.com 申请的 Key">
+          <div class="tip">注册 lbs.qq.com → 控制台 → 创建应用 → 添加 Key（勾选 WebServiceAPI 与 Web端JS API）→ 复制粘贴到这里</div>
+        </div>
+        <button class="btn" id="btnSaveKey">保存 Key</button>
+        <div class="tip" style="margin-top:10px">Key 只存在你手机本地，不会上传。</div>
+      </div>
+      <div class="card">
+        <div class="set-row">
+          <label>数据备份</label>
+          <div class="set-actions">
+            <button class="btn btn-line" id="btnExport">📤 导出备份</button>
+            <button class="btn btn-line" id="btnImport">📥 导入恢复</button>
+          </div>
+          <div class="tip">导出为 JSON 文件保存到「文件」App，换手机/重装后可导入恢复。</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="set-row">
+          <label>关于</label>
+          <div class="tip">自驾路书 RoadBook · 本地优先 · 无服务器 · v1.0</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TabBar ============ -->
+  <nav class="tabbar">
+    <button data-v="home" class="on"><span class="ico">🏠</span>行程</button>
+    <button data-v="trip"><span class="ico">📍</span>规划</button>
+    <button data-v="diary"><span class="ico">📓</span>日记</button>
+    <button data-v="settings"><span class="ico">⚙️</span>设置</button>
+  </nav>
+
+  <!-- ============ 日记编辑弹窗 ============ -->
+  <div class="modal" id="diaryModal">
+    <div class="sheet">
+      <h3>记一笔 <button class="btn-s" id="btnCloseDiary">关闭</button></h3>
+      <textarea id="diText" placeholder="今天遇到了什么好吃的、好玩的…"></textarea>
+      <div class="in-row">
+        <input type="text" id="diPlace" placeholder="📍 地点（选填）">
+      </div>
+      <div class="in-row">
+        <input type="text" id="diTags" placeholder="标签，逗号分隔：美食,海边">
+      </div>
+      <div id="diPhotos"></div>
+      <div class="in-row">
+        <button class="btn-s" id="btnAddPhoto" style="flex:1; padding:10px">📷 加照片（最多3张）</button>
+      </div>
+      <button class="btn" id="btnSaveDiary">保存</button>
+    </div>
+  </div>
+
+  <!-- ============ 停车场弹窗 ============ -->
+  <div class="modal" id="parkModal">
+    <div class="sheet">
+      <h3>🅿️ 附近停车场 <button class="btn-s" id="parkClose">关闭</button></h3>
+      <div id="parkList"></div>
+    </div>
+  </div>
+
+  <!-- ============ 大图查看 ============ -->
+  <div id="photoFull"><img alt=""></div>
+
+  <!-- ============ Toast ============ -->
+  <div id="toast"></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/tencent.js"></script>
+  <script src="js/planner.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/poster.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
