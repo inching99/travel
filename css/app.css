@@ -4,7 +4,7 @@ html, body { height: 100%; }
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Segoe UI', sans-serif;
   background: #f1f5f9; color: #0f172a; font-size: 15px;
-  padding-bottom: 76px; /* tabbar */
+  padding-bottom: 96px; /* tabbar + 安全余量 */
 }
 button { font-family: inherit; cursor: pointer; }
 
