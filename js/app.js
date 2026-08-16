@@ -171,12 +171,21 @@ RB.App = (function () {
           <div><b>${esc(p.name)}</b><div class="sub">${esc(p.address || '')}</div></div>
           <button class="btn-s add">+ 加入</button>
         </div>`).join('') : '<div class="empty">无结果，换个关键词试试</div>';
-      box.querySelectorAll('.s-item').forEach(el => el.onclick = () => {
-        const p = searchCache[+el.dataset.i];
-        if (!currentTrip) return;
-        if (currentTrip.points.length >= RB.CONFIG.PLAN.MAX_WAYPOINTS) return toast('已达单行程点数上限');
-        currentTrip.points.push({ uid: Date.now(), name: p.name, lat: p.lat, lng: p.lng, category: p.category, address: p.address, stayMin: null, importance: 0.5 });
-        saveCurrent().then(() => { renderTrip(); toast('已加入：' + p.name); });
+      box.querySelectorAll('.s-item').forEach(el => el.onclick = async () => {
+        try {
+          const p = searchCache[+el.dataset.i];
+          // 没打开行程时：自动打开最近的，或新建一个
+          if (!currentTrip) {
+            const trips = await RB.DB.listTrips();
+            currentTrip = trips.length ? trips[0] : await RB.DB.newTrip({ title: '新行程 ' + new Date().toLocaleDateString('zh-CN') });
+            $('#tripTitle').textContent = currentTrip.title;
+          }
+          if (currentTrip.points.length >= RB.CONFIG.PLAN.MAX_WAYPOINTS) return toast('已达单行程点数上限（' + RB.CONFIG.PLAN.MAX_WAYPOINTS + '个）');
+          currentTrip.points.push({ uid: Date.now(), name: p.name, lat: p.lat, lng: p.lng, category: p.category, address: p.address, stayMin: null, importance: 0.5 });
+          await saveCurrent();
+          renderTrip();
+          toast('已加入：' + p.name);
+        } catch (e) { toast('加入失败：' + e.message, 4000); }
       });
     } catch (e) { box.innerHTML = `<div class="empty">${esc(e.message)}</div>`; }
   }
