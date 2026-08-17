@@ -34,18 +34,22 @@ RB.DB = (function () {
       const s = t.objectStore(store);
       let out;
       try { out = fn(s); } catch (err) { rej(err); return; }
-      t.oncomplete = () => res(out && out.result !== undefined ? out.result : out);
+      // out 为 IDBRequest（put/get/delete 等）→ 取 request.result；否则原样返回
+      t.oncomplete = () => res((typeof IDBRequest !== 'undefined' && out instanceof IDBRequest) ? out.result : out);
       t.onerror = () => rej(t.error);
     }));
   }
 
   // ---- trips ----
-  const newTrip = data => tx('trips', 'readwrite', s => s.put(Object.assign({
-    id: 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-    createdAt: Date.now(), startDate: '', startHour: 8, points: [], plan: [], advice: []
-  }, data)));
+  function newTrip(data) {
+    const rec = Object.assign({
+      id: 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      createdAt: Date.now(), startDate: '', startHour: 8, points: [], plan: [], advice: []
+    }, data);
+    return tx('trips', 'readwrite', s => s.put(rec)).then(() => rec);
+  }
 
-  const saveTrip = t => tx('trips', 'readwrite', s => s.put(t));
+  const saveTrip = t => tx('trips', 'readwrite', s => s.put(t)).then(() => t);
   const getTrip = id => tx('trips', 'readonly', s => s.get(id));
   const listTrips = () => tx('trips', 'readonly', s => s.getAll()).then(ts => ts.sort((a, b) => b.createdAt - a.createdAt));
   const delTrip = id => tx('trips', 'readwrite', s => s.delete(id));
@@ -58,7 +62,7 @@ RB.DB = (function () {
 
   const listDiaries = tripId => tx('diaries', 'readonly', s => tripId ? s.index('tripId').getAll(tripId) : s.getAll())
     .then(ds => ds.sort((a, b) => b.ts - a.ts));
-  const saveDiary = d => tx('diaries', 'readwrite', s => s.put(d));
+  const saveDiary = d => tx('diaries', 'readwrite', s => s.put(d)).then(() => d);
   const delDiary = id => tx('diaries', 'readwrite', s => s.delete(id));
 
   // ---- 备份导出/导入 ----

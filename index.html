@@ -14,23 +14,18 @@
 </head>
 <body>
 
-  <!-- ============ 首页 ============ -->
-  <section id="homeView" class="view active">
-    <div class="page-head">
-      <h1>🚗 自驾路书</h1>
-      <div class="sub">线路规划 · 停留预估 · 停车检索 · 旅行日记</div>
-    </div>
-    <div class="container">
-      <div id="tripList"></div>
-      <button class="btn" id="btnNewTrip">＋ 新建行程</button>
-    </div>
-  </section>
-
   <!-- ============ 行程页 ============ -->
-  <section id="tripView" class="view">
+  <section id="tripView" class="view active">
     <div class="page-head">
       <h1 id="tripTitle">行程</h1>
       <div class="sub">搜索添加地点 → 一键规划 → 查看建议与停车</div>
+    </div>
+    <!-- 行程切换条 -->
+    <div class="container" style="padding-bottom:0">
+      <div class="trip-switch">
+        <div id="tripSwitchList"></div>
+        <button class="btn-s" id="btnNewTrip">＋ 新建</button>
+      </div>
     </div>
     <div class="container">
       <!-- 搜索 -->
@@ -127,8 +122,7 @@
 
   <!-- ============ TabBar ============ -->
   <nav class="tabbar">
-    <button data-v="home" class="on"><span class="ico">🏠</span>行程</button>
-    <button data-v="trip"><span class="ico">📍</span>规划</button>
+    <button data-v="trip" class="on"><span class="ico">🧭</span>规划</button>
     <button data-v="diary"><span class="ico">📓</span>日记</button>
     <button data-v="settings"><span class="ico">⚙️</span>设置</button>
   </nav>

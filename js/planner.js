@@ -37,8 +37,8 @@ RB.Planner = (function () {
           for (let j = i + 1; j < order.length; j++) {
             const a = i === 0 ? start : order[i - 1];
             const endAnchor = order[j + 1] || start || cur;
-            const d1 = distKm(a, order[i]) + distKm(order[j], endAnchor);
-            const d2 = distKm(a, order[j]) + distKm(order[i], endAnchor);
+            const d1 = (a ? distKm(a, order[i]) : 0) + distKm(order[j], endAnchor);
+            const d2 = (a ? distKm(a, order[j]) : 0) + distKm(order[i], endAnchor);
             if (d2 < d1 - 0.01) {
               // 反转 i..j
               const seg = order.slice(i, j + 1).reverse();

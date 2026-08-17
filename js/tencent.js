@@ -26,15 +26,29 @@ RB.TC = (function () {
   }
 
   // 地点搜索（关键词）
+  // region 城市名；不传时全国搜索。全国搜不了泛词（只返回按城市分组的 cluster），
+  // 所以泛词+无城市时提示用户填城市；专有名词（如"十里长堤"）全国能直接搜到。
   function searchPlace(keyword, region) {
-    const p = { keyword, page_size: 10, orderby: '_distance' };
-    if (region) { p.boundary = 'region(' + region + ',0)'; }
+    const p = { keyword, page_size: 10 };
+    if (region) {
+      p.boundary = 'region(' + region + ',0)';
+      p.orderby = '_distance';
+    } else {
+      p.boundary = 'region(全国,0)';   // boundary 必填，缺省会报「参数错误：boundary」
+    }
     return get('/place/v1/search', p).then(d => {
       if (d.status !== 0) throw new Error(d.message || '搜索失败');
-      return (d.data || []).map(x => ({
+      const list = (d.data || []).map(x => ({
         name: x.title, lat: x.location.lat, lng: x.location.lng,
-        category: x.category || '', address: x.address || '', id: x.id
+        category: x.category || '', address: x.address || '', id: x.id,
+        city: x.ad_info && x.ad_info.city ? x.ad_info.city.replace(/市$/, '') : ''
       }));
+      if (!list.length) {
+        // 泛词（如"海鲜市场"）全国搜索时 data 为空、只有 cluster 按城市分组
+        const cities = (d.cluster || []).slice(0, 6).map(c => c.title).join('、');
+        if (cities) throw new Error('“' + keyword + '”匹配城市太多，请在上面的城市框填一个城市（如：' + cities + '）');
+      }
+      return list;
     });
   }
 

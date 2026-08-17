@@ -111,6 +111,18 @@ button { font-family: inherit; cursor: pointer; transition: transform .18s var(-
 .s-item .add { color: var(--primary-deep); border-color: #e3b7a6; background: #fdf5ef; font-weight: 600; }
 
 /* ---- 行程设置 ---- */
+/* ---- 行程切换条 ---- */
+.trip-switch { display: flex; gap: 8px; align-items: center; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 2px 0 10px; scrollbar-width: none; }
+.trip-switch::-webkit-scrollbar { display: none; }
+.trip-switch .btn-s { flex: 0 0 auto; }
+#tripSwitchList { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+#tripSwitchList::-webkit-scrollbar { display: none; }
+.sw-chip { flex: 0 0 auto; padding: 6px 14px; border-radius: 99px; border: 1px solid var(--line); background: var(--card); color: var(--ink-soft); font-size: 13px; user-select: none; -webkit-user-select: none; transition: all .2s var(--ease); }
+.sw-chip.on { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: 600; box-shadow: 0 2px 8px rgba(196, 86, 58, .3); }
+.sw-chip:active { transform: scale(.94); }
+.sw-none { font-size: 13px; color: var(--ink-soft); }
+.hide { display: none !important; }
+
 .trip-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .trip-meta .btn-s { flex: 1; text-align: center; }
 .trip-meta label {

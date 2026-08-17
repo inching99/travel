@@ -18,37 +18,40 @@ RB.App = (function () {
     $$('.view').forEach(el => el.classList.remove('active'));
     $('#' + v + 'View').classList.add('active');
     $$('.tabbar button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
-    if (v === 'home') renderHome();
-    if (v === 'trip') renderTrip();
+    if (v === 'trip') { renderTrip(); renderTripSwitch(); }
     if (v === 'diary') renderDiary(...args);
     if (v === 'settings') renderSettings();
     window.scrollTo(0, 0);
   }
 
-  // ---------- 首页：行程列表 ----------
-  async function renderHome() {
+  // ---------- 行程切换条（并入规划页） ----------
+  async function renderTripSwitch() {
     const trips = await RB.DB.listTrips();
-    const box = $('#tripList');
-    if (!trips.length) { box.innerHTML = '<div class="empty">还没有行程<br>点下面「+ 新建行程」开始规划吧</div>'; return; }
-    box.innerHTML = trips.map(t => {
-      const s = t.planSummary || {};
-      return `<div class="card trip-card" data-id="${t.id}">
-        <div class="row"><b>${esc(t.title || '未命名行程')}</b>
-        <button class="btn-danger btn-s del" data-id="${t.id}">删除</button></div>
-        <div class="sub">${t.points.length} 个地点${s.driveKm ? ' · 约 ' + s.driveKm + ' km · ' + clock2(s) : ''}</div>
-        ${t.plan && t.plan.length ? `<div class="mini-timeline">${t.plan.map((p, i) => `<span class="chip">${i + 1}.${esc(p.point.name)}</span>`).join('')}</div>` : ''}
-      </div>`;
-    }).join('');
-    box.querySelectorAll('.trip-card').forEach(c => c.onclick = e => {
-      if (e.target.classList.contains('del')) return;
-      openTrip(c.dataset.id);
-    });
-    box.querySelectorAll('.del').forEach(b => b.onclick = async e => {
-      e.stopPropagation();
-      if (await confirmDlg('删除该行程（含其日记引用不删除）？')) { await RB.DB.delTrip(b.dataset.id); renderHome(); }
+    const box = $('#tripSwitchList');
+    if (!box) return;
+    if (!currentTrip && trips.length) currentTrip = trips[0];
+    if (!trips.length) {
+      box.innerHTML = '<span class="sw-none">还没有行程，点「＋ 新建」开始</span>';
+      return;
+    }
+    box.innerHTML = trips.map(t => `<span class="sw-chip${t.id === (currentTrip && currentTrip.id) ? ' on' : ''}" data-id="${t.id}">${esc(t.title || '未命名')}</span>`).join('');
+    box.querySelectorAll('.sw-chip').forEach(c => {
+      c.onclick = () => openTrip(c.dataset.id);
+      // 长按删除行程
+      let timer = null;
+      c.onpointerdown = () => { timer = setTimeout(async () => {
+        timer = null;
+        if (await confirmDlg('删除该行程？（其日记会保留）')) {
+          await RB.DB.delTrip(c.dataset.id);
+          if (currentTrip && currentTrip.id === c.dataset.id) currentTrip = null;
+          const trips = await RB.DB.listTrips();
+          currentTrip = trips.length ? trips[0] : null;
+          renderTrip(); renderTripSwitch();
+        }
+      }, 550); };
+      c.onpointerup = c.onpointerleave = c.onpointercancel = () => { if (timer) { clearTimeout(timer); timer = null; } };
     });
   }
-  const clock2 = s => `${s.startClock || ''}~${s.endClock || ''}`;
 
   async function newTripFlow() {
     const title = prompt('行程名称（如：环岛东线一日游）', '新行程 ' + new Date().toLocaleDateString('zh-CN'));
@@ -63,15 +66,22 @@ RB.App = (function () {
     go('trip');
   }
 
-  async function saveCurrent() { if (currentTrip) currentTrip = await RB.DB.saveTrip(currentTrip); }
+  async function saveCurrent() { if (currentTrip && currentTrip.id !== 'draft') currentTrip = await RB.DB.saveTrip(currentTrip); }
 
   async function renderTrip() {
-    if (!currentTrip) return go('home');
+    if (!currentTrip) {
+      // 有行程 → 打开最近的；没有任何行程 → 就地新建草稿（不落库，加点/改名才保存）
+      const trips = await RB.DB.listTrips();
+      currentTrip = trips.length ? trips[0] : { id: 'draft', title: '新行程', points: [], plan: [], advice: [], startHour: 8 };
+    }
     const t = currentTrip;
     $('#tripTitle').textContent = t.title || '未命名行程';
     $('#tripTitle').onclick = async () => {
-      const n = prompt('修改行程名称', t.title); if (n == null) return;
-      t.title = n.trim() || t.title; await saveCurrent(); renderTrip();
+      const n = prompt('行程名称（如：环岛东线一日游）', t.title); if (n == null) return;
+      t.title = n.trim() || t.title;
+      if (t.id === 'draft') { const nt = await RB.DB.newTrip({ title: t.title, points: t.points, startHour: t.startHour }); currentTrip = nt; }
+      else await saveCurrent();
+      renderTrip(); renderTripSwitch();
     };
     // 起点/出发时间
     $('#startPosLabel').textContent = t.startName ? '🚩 起点：' + t.startName : '🚩 起点：未设置（默认不排首段驾车）';
@@ -163,7 +173,12 @@ RB.App = (function () {
     const box = $('#searchResult');
     box.innerHTML = '<div class="empty">搜索中…</div>';
     try {
-      const city = ($('#searchCity').value || '').trim();
+      let city = ($('#searchCity').value || '').trim();
+      if (!city && currentTrip) {
+        // 城市留空时：自动用行程内已有地点的城市，提高搜索准确度
+        const c = currentTrip.points.map(p => p.city).find(Boolean);
+        if (c) { city = c; $('#searchCity').value = c; }
+      }
       const list = await RB.TC.searchPlace(kw, city || undefined);
       searchCache = list;
       box.innerHTML = list.length ? list.map((p, i) => `
@@ -174,16 +189,17 @@ RB.App = (function () {
       box.querySelectorAll('.s-item').forEach(el => el.onclick = async () => {
         try {
           const p = searchCache[+el.dataset.i];
-          // 没打开行程时：自动打开最近的，或新建一个
-          if (!currentTrip) {
+          // 草稿行程：第一个点加入时自动落库
+          if (!currentTrip || currentTrip.id === 'draft') {
             const trips = await RB.DB.listTrips();
-            currentTrip = trips.length ? trips[0] : await RB.DB.newTrip({ title: '新行程 ' + new Date().toLocaleDateString('zh-CN') });
-            $('#tripTitle').textContent = currentTrip.title;
+            if (!currentTrip) currentTrip = { title: '新行程 ' + new Date().toLocaleDateString('zh-CN'), points: [], startHour: 8 };
+            const nt = await RB.DB.newTrip({ title: currentTrip.title || ('新行程 ' + new Date().toLocaleDateString('zh-CN')), points: [], startHour: currentTrip.startHour || 8 });
+            currentTrip = nt;
           }
           if (currentTrip.points.length >= RB.CONFIG.PLAN.MAX_WAYPOINTS) return toast('已达单行程点数上限（' + RB.CONFIG.PLAN.MAX_WAYPOINTS + '个）');
-          currentTrip.points.push({ uid: Date.now(), name: p.name, lat: p.lat, lng: p.lng, category: p.category, address: p.address, stayMin: null, importance: 0.5 });
+          currentTrip.points.push({ uid: Date.now(), name: p.name, lat: p.lat, lng: p.lng, category: p.category, address: p.address, city: p.city || '', stayMin: null, importance: 0.5 });
           await saveCurrent();
-          renderTrip();
+          renderTrip(); renderTripSwitch();
           toast('已加入：' + p.name);
         } catch (e) { toast('加入失败：' + e.message, 4000); }
       });
@@ -446,7 +462,7 @@ RB.App = (function () {
     const k = localStorage.getItem('rb_key');
     if (k) RB.CONFIG.TENCENT_MAP_KEY = k;
     bind();
-    go('home');
+    go('trip');
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
     if (!k) setTimeout(() => toast('提示：先到「设置」填入腾讯地图Key', 4000), 800);
   }
