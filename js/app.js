@@ -123,6 +123,10 @@ RB.App = (function () {
       await saveCurrent();
     });
 
+    // 有规划时主按钮变为「重新规划」，明示会覆盖
+    const bp = $('#btnPlan');
+    if (bp) bp.textContent = (t.plan && t.plan.length) ? '🔁 重新规划路线（会覆盖当前方案）' : '⚡ 一键规划路线';
+
     // 已有规划结果
     renderPlanResult();
     renderTripMap();
@@ -136,7 +140,12 @@ RB.App = (function () {
     $('#mapBox').classList.remove('hide');
     if (sch) RB.Schematic.render(sch, t.plan, t.startPos ? { name: t.startName || '出发点', lat: t.startPos.lat, lng: t.startPos.lng } : null);
     const s = t.planSummary || {};
-    let html = `<div class="summary">
+    let html = `<div class="plan-ops">
+        <span class="po-tip">行程有变？改完地点再来一次就行</span>
+        <button class="btn-s" id="btnReplan">🔁 重新规划</button>
+        <button class="btn-s danger" id="btnClearPlan">🗑 清除</button>
+      </div>`;
+    html += `<div class="summary">
       <div>${s.startClock} 出发 → ${s.endClock} 结束 · 总时长 ${RB.Planner.fmtHM(s.totalMin)}</div>
       <div>驾车 ${RB.Planner.fmtHM(s.driveMin)} / ${s.driveKm} km</div></div>`;
     html += t.plan.map((row, i) => {
@@ -155,6 +164,14 @@ RB.App = (function () {
       html += '<div class="advice-title">💡 自驾建议</div>' + t.advice.map(a => `<div class="advice ${a.level}">${esc(a.text)}</div>`).join('');
     }
     box.innerHTML = html;
+    const rBtn = $('#btnReplan'); if (rBtn) rBtn.onclick = () => planNow();
+    const cBtn = $('#btnClearPlan'); if (cBtn) cBtn.onclick = async () => {
+      if (!(await confirmDlg('清除当前规划？地点都保留，随时能重新规划'))) return;
+      t.plan = []; t.advice = []; t.planSummary = null;
+      await saveCurrent();
+      renderTrip();
+      toast('已清除规划，改完地点再重新规划吧');
+    };
   }
 
   async function renderTripMap() {
